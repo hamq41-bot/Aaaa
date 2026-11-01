@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>منظومة رِبحـي - مساعد التجار المتكامل</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f4ff',
+                            100: '#e0e9ff',
+                            500: '#4f46e5',
+                            600: '#4338ca',
+                            700: '#3730a3',
+                            gold: '#d97706',
+                            goldLight: '#f59e0b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- PWA Web App Manifest -->
+    <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22name%22%3A%22%D8%B1%D9%90%D8%A8%D8%AD%D9%80%D9%8A%22%2C%22short_name%22%3A%22%D8%B1%D9%90%D8%A8%D8%AD%D9%80%D9%8A%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%234f46e5%22%7D">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+        body { font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+    <!-- Import Google GenAI SDK ESM module -->
+    <script type="module">
+        import { GoogleGenAI } from "https://esm.sh/@google/genai";
+        window.GoogleGenAI = GoogleGenAI;
+    </script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-24 transition-colors duration-200">
+
+    <!-- Header Section -->
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3 space-x-reverse">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-brand-gold flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/20">
+                <i class="fa-solid fa-chart-line text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-lg text-white leading-tight">رِبحـي <span class="text-xs px-2 py-0.5 rounded-full bg-brand-gold/20 text-brand-gold font-normal">v3.0 Ultra</span></h1>
+                <p class="text-xs text-slate-400">منظومة إدارة المبيعات والتسويق الذكية</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 space-x-reverse">
+            <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700">
+                <i class="fa-solid fa-moon text-sm" id="theme-icon"></i>
+            </button>
+            <div id="ai-status-badge" class="flex items-center space-x-1 space-x-reverse px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span id="ai-status-text">الوكيل جاهز</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-md mx-auto px-4 pt-4">
+
+        <!-- SECTION 1: HOME -->
+        <section id="sec-home" class="space-y-4">
+            <!-- Quick Stats -->
+            <div class="grid grid-cols-3 gap-2">
+                <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-2xl text-center">
+                    <span class="text-xs text-slate-400 block mb-1">إجمالي العملاء</span>
+                    <span class="text-xl font-bold text-emerald-400" id="stat-leads-count">0</span>
+                </div>
+                <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-2xl text-center">
+                    <span class="text-xs text-slate-400 block mb-1">ردود معلقة</span>
+                    <span class="text-xl font-bold text-brand-gold" id="stat-pending-count">0</span>
+                </div>
+                <div class="bg-slate-800/80 border border-slate-700/60 p-3 rounded-2xl text-center">
+                    <span class="text-xs text-slate-400 block mb-1">المبيعات الناجحة</span>
+                    <span class="text-xl font-bold text-brand-500" id="stat-converted-count">0</span>
+                </div>
+            </div>
+
+            <!-- Calculator Quick Tool -->
+            <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold text-sm text-white flex items-center gap-2">
+                        <i class="fa-solid fa-calculator text-brand-gold"></i>
+                        <span>حاسبة أرباح الشحنة السريعة</span>
+                    </h2>
+                    <span class="text-[10px] bg-brand-500/20 text-brand-100 px-2 py-0.5 rounded">عراقي</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                        <label class="text-slate-400 block mb-1">سعر البيع (د.ع):</label>
+                        <input type="number" id="calc-price" placeholder="مثال: 25000" oninput="calculateProfit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
+                    </div>
+                    <div>
+                        <label class="text-slate-400 block mb-1">كلفة التجهيز (د.ع):</label>
+                        <input type="number" id="calc-cost" placeholder="مثال: 12000" oninput="calculateProfit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
+                    </div>
+                    <div>
+                        <label class="text-slate-400 block mb-1">كلفة التوصيل (د.ع):</label>
+                        <input type="number" id="calc-delivery" value="5000" oninput="calculateProfit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
+                    </div>
+                    <div>
+                        <label class="text-slate-400 block mb-1">معدل الإعلانات (د.ع):</label>
+                        <input type="number" id="calc-ad" value="3000" oninput="calculateProfit()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white">
+                    </div>
+                </div>
+                <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-700/60 flex items-center justify-between text-xs font-bold">
+                    <span class="text-slate-300">صافي ربح القطعة:</span>
+                    <span id="calc-result" class="text-emerald-400 font-extrabold text-sm">0 د.ع</span>
+                </div>
+            </div>
+
+            <!-- Today Post Card -->
+            <div class="bg-gradient-to-br from-slate-800 to-slate-800/90 border border-brand-500/30 rounded-2xl p-4 shadow-xl space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2 space-x-reverse">
+                        <i class="fa-solid fa-pen-nib text-brand-gold text-sm"></i>
+                        <h2 class="font-bold text-sm text-white">منشور اليوم الترويجي الذكي</h2>
+                    </div>
+                    <button onclick="generateDailyPost()" class="text-xs text-brand-gold hover:underline flex items-center gap-1">
+                        <i class="fa-solid fa-rotate"></i> تجديد
+                    </button>
+                </div>
+                <p id="today-post-text" class="text-sm text-slate-200 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 min-h-[70px]">
+                    شغل أرباحك ويا تطبيق "ربحي"! احسب مصاريف التوصيل، الإعلانات، والأرباح الصافية لكل شحنة بكل سهولة وبدون كركبة حسابات 🚀
+                </p>
+                <div class="flex items-center space-x-2 space-x-reverse">
+                    <button onclick="copyPostText()" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center space-x-1.5 space-x-reverse transition">
+                        <i class="fa-solid fa-copy"></i>
+                        <span>نسخ النص</span>
+                    </button>
+                    <button onclick="openPlatform('facebook')" class="bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 p-2 rounded-xl text-xs flex items-center justify-center w-10">
+                        <i class="fa-brands fa-facebook-f"></i>
+                    </button>
+                    <button onclick="openPlatform('telegram')" class="bg-sky-500/20 text-sky-400 hover:bg-sky-500/30 p-2 rounded-xl text-xs flex items-center justify-center w-10">
+                        <i class="fa-brands fa-telegram"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pending Leads Approvals -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <h2 class="font-bold text-sm text-slate-200">ردود معلقة تنتظر الإجراء</h2>
+                    <span class="text-xs text-brand-gold" id="pending-badge-count">0 طلبات</span>
+                </div>
+                <div id="pending-replies-list" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: LEADS -->
+        <section id="sec-leads" class="space-y-3 hidden">
+            <div class="flex items-center justify-between">
+                <h2 class="font-bold text-base text-white">إدارة سجل العملاء والطلبات</h2>
+                <button onclick="openAddLeadModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 font-bold">
+                    <i class="fa-solid fa-plus"></i> إيجاد زبون جديد
+                </button>
+            </div>
+
+            <!-- Filter tabs -->
+            <div class="flex space-x-1 space-x-reverse text-xs bg-slate-800 p-1 rounded-xl">
+                <button onclick="filterLeads('all')" id="filter-all" class="flex-1 py-1.5 rounded-lg bg-brand-600 text-white font-bold">الكل</button>
+                <button onclick="filterLeads('pending')" id="filter-pending" class="flex-1 py-1.5 rounded-lg text-slate-400">معلقة</button>
+                <button onclick="filterLeads('converted')" id="filter-converted" class="flex-1 py-1.5 rounded-lg text-slate-400">تم الشراء</button>
+            </div>
+
+            <div class="space-y-2" id="full-leads-container"></div>
+        </section>
+
+        <!-- SECTION 3: CONTENT GENERATION -->
+        <section id="sec-content" class="space-y-4 hidden">
+            <h2 class="font-bold text-base text-white">توليد وصناعة المحتوى الذكي</h2>
+            
+            <div class="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-3">
+                <div>
+                    <label class="text-xs text-slate-300 block font-bold mb-1">نوع المحتوى المطلوب:</label>
+                    <select id="content-type" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                        <option value="منشور فيسبوك وانستغرام عراقي تفاعلي مع هاشتاغات">منشور فيسبوك / انستغرام عراقي</option>
+                        <option value="سيناريو فيديو ريلز حماسي مدته 30 ثانية مع خطة التصوير">سيناريو فيديو ريلز / ستوري</option>
+                        <option value="رسالة تسويقية مباشرة وإقناعية للتليغرام والواتساب">رسالة تسويق تليغرام ومباشر</option>
+                        <option value="صياغة إعلان ممول مع استهداف الجمهور المناسب بالعراق">خطة إعلان ممول مستهدف</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-300 block font-bold mb-1">تفاصيل المنتج أو الفكرة الخاصة بها:</label>
+                    <input type="text" id="content-topic" placeholder="مثال: التركيز على توصيل المحافظات وحساب الراجع..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                </div>
+
+                <button id="btn-generate-content" onclick="generateAIContent()" class="w-full bg-gradient-to-r from-brand-600 to-brand-gold text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-600/20">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>توليد المحتوى بواسطة Gemini</span>
+                </button>
+            </div>
+
+            <div id="content-result" class="hidden bg-slate-800/90 border border-brand-500/30 p-3 rounded-xl space-y-2">
+                <span class="text-xs text-brand-gold font-bold block">النتيجة المقترحة:</span>
+                <p id="generated-text" class="text-xs text-slate-200 leading-relaxed bg-slate-900 p-3 rounded-lg whitespace-pre-line"></p>
+                <button onclick="copyGeneratedContent()" class="w-full bg-slate-700 hover:bg-slate-600 text-white text-xs py-2 rounded-lg font-bold">نسخ المحتوى</button>
+            </div>
+        </section>
+
+        <!-- SECTION 4: AGENT COMMANDS -->
+        <section id="sec-agent" class="space-y-4 hidden">
+            <h2 class="font-bold text-base text-white">المساعد الذكي (الوكيل المباشر)</h2>
+
+            <div class="bg-slate-800 p-3.5 rounded-xl border border-slate-700 space-y-2">
+                <p class="text-xs text-slate-300">أدخل أي سؤال، مشكلة تجارية، أو أمر لإدارتها وتحليلها فوراً:</p>
+                <textarea id="agent-command-input" rows="3" placeholder="مثال: زبون متردد بسعر التوصيل للموصل، شلون أقنعه يشتري الحين؟" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-brand-500"></textarea>
+                <button id="btn-send-agent" onclick="sendAgentCommand()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>إرسال الاستفسار للوكيل</span>
+                </button>
+            </div>
+
+            <div id="agent-plan-output" class="hidden bg-slate-800 border border-slate-700 p-3 rounded-xl space-y-2">
+                <span class="text-xs text-emerald-400 font-bold block">استجابة وتحليل الوكيل الذكي:</span>
+                <p id="agent-plan-text" class="text-xs text-slate-300 bg-slate-900 p-3 rounded-lg whitespace-pre-line"></p>
+                <button onclick="approveAgentPlan()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs py-2 rounded-lg font-bold">تطبيق التوصيات</button>
+            </div>
+        </section>
+
+        <!-- SECTION 5: SETTINGS -->
+        <section id="sec-settings" class="space-y-4 hidden">
+            <h2 class="font-bold text-base text-white">إعدادات النظام والـ API Key</h2>
+
+            <div class="bg-slate-800 p-3.5 rounded-xl border border-slate-700 space-y-3">
+                <div>
+                    <label class="text-xs text-slate-300 block mb-1 font-bold text-brand-gold">Google Gemini API Key:</label>
+                    <input type="password" id="setting-api-key" placeholder="أدخل API Key الخاص بك هنا..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-brand-500">
+                    <p class="text-[10px] text-slate-400 mt-1">المفتاح يحفظ بأمان على متصفحك الشخصي فقط لاستخدامه في الطلبات المباشرة.</p>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-300 block mb-1 font-bold">اسم متجرك أو عملك:</label>
+                    <input type="text" id="setting-store-name" value="حاسبة ربحي للتجارة" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-300 block mb-1 font-bold">الكلمات المفتاحية المستهدفة:</label>
+                    <input type="text" id="setting-keywords" value="أرباح، حاسبة، توصيل، تجارة، دروبشيبينغ" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                </div>
+
+                <div class="pt-2 flex gap-2">
+                    <button onclick="saveSettings()" class="flex-1 bg-brand-gold hover:bg-brand-goldLight text-white font-bold py-2.5 rounded-xl text-xs">
+                        حفظ الإعدادات
+                    </button>
+                    <button onclick="resetDefaultData()" class="px-3 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 font-bold py-2.5 rounded-xl text-xs">
+                        إعادة ضبط
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 max-w-md mx-auto px-2 py-2">
+        <div class="grid grid-cols-5 gap-1 text-center">
+            <button onclick="switchTab('home')" id="tab-home" class="py-1 text-brand-500 font-bold flex flex-col items-center">
+                <i class="fa-solid fa-house text-base"></i>
+                <span class="text-[10px] mt-0.5">الرئيسية</span>
+            </button>
+            <button onclick="switchTab('leads')" id="tab-leads" class="py-1 text-slate-400 flex flex-col items-center">
+                <i class="fa-solid fa-users text-base"></i>
+                <span class="text-[10px] mt-0.5">العملاء</span>
+            </button>
+            <button onclick="switchTab('content')" id="tab-content" class="py-1 text-slate-400 flex flex-col items-center">
+                <i class="fa-solid fa-wand-magic-sparkles text-base"></i>
+                <span class="text-[10px] mt-0.5">المحتوى</span>
+            </button>
+            <button onclick="switchTab('agent')" id="tab-agent" class="py-1 text-slate-400 flex flex-col items-center">
+                <i class="fa-solid fa-robot text-base"></i>
+                <span class="text-[10px] mt-0.5">الوكيل</span>
+            </button>
+            <button onclick="switchTab('settings')" id="tab-settings" class="py-1 text-slate-400 flex flex-col items-center">
+                <i class="fa-solid fa-gear text-base"></i>
+                <span class="text-[10px] mt-0.5">الإعدادات</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Logic Script -->
+    <script>
+        const SYSTEM_INSTRUCTION = "أنت وكيل ذكاء اصطناعي مخصص لمنظومة 'رِبحـي' الموجهة للتجار وأصحاب المتاجر الإلكترونية في العراق. أسلوبك عراقي محترف، مباشر، وودي. تهتم بدقة الحسابات، التسويق الفعال، وكيفية إقناع الزبون والتفاعل معه بشكل ممتاز.";
+
+        let leadsState = [];
+
+        const defaultLeads = [
+            {
+                id: 'lead-1',
+                name: 'علي الخفاجي',
+                platform: 'telegram',
+                intent: 'جاد (95%)',
+                query: 'السلام عليكم، شكد سعر اشتراك حاسبة ربحي؟',
+                suggestedReply: 'هلا بيك أستاذ علي! الاشتراك مجاني حالياً للتجار. تقدر تنزله وتستفاد من حساب أرباحك فوراً.',
+                status: 'pending',
+                time: 'قبل 5 دقائق'
+            },
+            {
+                id: 'lead-2',
+                name: 'محل الأناقة بغداد',
+                platform: 'facebook',
+                intent: 'استفسار جاد (88%)',
+                query: 'التطبيق ينفع لحساب مصاريف التوصيل للمحافظات واستقطاع الراجع؟',
+                suggestedReply: 'أهلاً بك! نعم بالضبط، حاسبة ربحي مخصصة لحساب أجور التوصيل لكافة المحافظات مع استقطاع الراجع تلقائياً.',
+                status: 'pending',
+                time: 'قبل 20 دقيقة'
+            }
+        ];
+
+        // Client & LocalStorage Init
+        function getAIClient() {
+            const apiKey = localStorage.getItem('rabhi_api_key') || "";
+            if (!apiKey) {
+                alert("يرجى إدخال Gemini API Key من قسم الإعدادات أولاً لتفعيل خدمات الذكاء الاصطناعي!");
+                switchTab('settings');
+                return null;
+            }
+            if (!window.GoogleGenAI) {
+                alert("جاري تحميل نظام الذكاء الاصطناعي، اعد المحاولة بعد لحظات...");
+                return null;
+            }
+            return new window.GoogleGenAI({ apiKey: apiKey });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('rabhi_api_key') || '';
+            const savedStore = localStorage.getItem('rabhi_store_name') || 'حاسبة ربحي للتجارة';
+            
+            document.getElementById('setting-api-key').value = savedKey;
+            document.getElementById('setting-store-name').value = savedStore;
+
+            const storedLeads = localStorage.getItem('rabhi_leads_data');
+            if (storedLeads) {
+                leadsState = JSON.parse(storedLeads);
+            } else {
+                leadsState = [...defaultLeads];
+                saveLeadsToStorage();
+            }
+
+            renderLeads();
+            calculateProfit();
+        });
+
+        function saveLeadsToStorage() {
+            localStorage.setItem('rabhi_leads_data', JSON.stringify(leadsState));
+        }
+
+        // Navigation
+        function switchTab(tabName) {
+            const tabs = ['home', 'leads', 'content', 'agent', 'settings'];
+            tabs.forEach(t => {
+                document.getElementById('sec-' + t).classList.add('hidden');
+                document.getElementById('tab-' + t).classList.remove('text-brand-500', 'font-bold');
+                document.getElementById('tab-' + t).classList.add('text-slate-400');
+            });
+            document.getElementById('sec-' + tabName).classList.remove('hidden');
+            document.getElementById('tab-' + tabName).classList.add('text-brand-500', 'font-bold');
+            document.getElementById('tab-' + tabName).classList.remove('text-slate-400');
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        // Calculator Logic
+        function calculateProfit() {
+            const price = parseFloat(document.getElementById('calc-price').value) || 0;
+            const cost = parseFloat(document.getElementById('calc-cost').value) || 0;
+            const delivery = parseFloat(document.getElementById('calc-delivery').value) || 0;
+            const ad = parseFloat(document.getElementById('calc-ad').value) || 0;
+
+            const net = price - (cost + delivery + ad);
+            const resEl = document.getElementById('calc-result');
+
+            resEl.innerText = net.toLocaleString('ar-IQ') + " د.ع";
+            if(net > 0) {
+                resEl.className = "text-emerald-400 font-extrabold text-sm";
+            } else if(net < 0) {
+                resEl.className = "text-red-400 font-extrabold text-sm";
+            } else {
+                resEl.className = "text-slate-300 font-extrabold text-sm";
+            }
+        }
+
+        // Render Leads Dynamically
+        function renderLeads(filter = 'all') {
+            const pendingList = document.getElementById('pending-replies-list');
+            const fullList = document.getElementById('full-leads-container');
+
+            pendingList.innerHTML = '';
+            fullList.innerHTML = '';
+
+            const pendingLeads = leadsState.filter(l => l.status === 'pending');
+            const convertedLeads = leadsState.filter(l => l.status === 'converted');
+
+            document.getElementById('stat-leads-count').innerText = leadsState.length;
+            document.getElementById('stat-pending-count').innerText = pendingLeads.length;
+            document.getElementById('stat-converted-count').innerText = convertedLeads.length;
+            document.getElementById('pending-badge-count').innerText = pendingLeads.length + " طلبات";
+
+            // Render Pending
+            if (pendingLeads.length === 0) {
+                pendingList.innerHTML = `<p class="text-xs text-slate-500 text-center py-3 bg-slate-800/40 rounded-xl">لا توجد ردود معلقة حالياً</p>`;
+            } else {
+                pendingLeads.forEach(lead => {
+                    pendingList.appendChild(createPendingCard(lead));
+                });
+            }
+
+            // Render Full Section
+            let filtered = leadsState;
+            if (filter === 'pending') filtered = pendingLeads;
+            if (filter === 'converted') filtered = convertedLeads;
+
+            if (filtered.length === 0) {
+                fullList.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">لا توجد عناصر لعرضها</p>`;
+            } else {
+                filtered.forEach(lead => {
+                    fullList.appendChild(createFullLeadCard(lead));
+                });
+            }
+        }
+
+        function createPendingCard(lead) {
+            const div = document.createElement('div');
+            div.className = "bg-slate-800 border border-slate-700 p-3 rounded-xl space-y-2";
+            div.id = `pending-${lead.id}`;
+
+            const icon = lead.platform === 'telegram' ? 'fa-telegram text-sky-400' : 'fa-facebook text-blue-400';
+
+            div.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2 space-x-reverse">
+                        <i class="fa-brands ${icon}"></i>
+                        <span class="font-bold text-xs text-white">${lead.name}</span>
+                    </div>
+                    <span class="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-medium">${lead.intent}</span>
+                </div>
+                <p class="text-xs text-slate-300">"${lead.query}"</p>
+                <div class="bg-slate-900/80 p-2 rounded-lg text-xs text-brand-gold border border-brand-gold/20">
+                    <strong>الرد المقترح:</strong> 
+                    <span id="reply-text-${lead.id}">${lead.suggestedReply}</span>
+                </div>
+                <div class="flex items-center space-x-2 space-x-reverse pt-1">
+                    <button onclick="approveReply('${lead.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-1.5 rounded-lg">إرسال واستكمال</button>
+                    <button onclick="editReplyText('${lead.id}')" class="px-3 bg-brand-600 text-white text-xs rounded-lg font-bold">تعديل</button>
+                    <button onclick="ignoreReply('${lead.id}')" class="px-3 bg-slate-700 text-slate-300 text-xs rounded-lg">تجاهل</button>
+                </div>
+            `;
+            return div;
+        }
+
+        function createFullLeadCard(lead) {
+            const div = document.createElement('div');
+            div.className = "bg-slate-800 border border-slate-700 p-3 rounded-xl space-y-1.5";
+
+            const isDone = lead.status === 'converted';
+            const statusBadge = isDone 
+                ? `<span class="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px]">تم الشراء</span>`
+                : `<span class="bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded text-[10px]">قيد المتابعة</span>`;
+
+            div.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-sm text-white">${lead.name}</span>
+                    <span class="text-xs text-slate-400">${lead.time}</span>
+                </div>
+                <p class="text-xs text-slate-300">"${lead.query}"</p>
+                <div class="flex items-center justify-between pt-1 text-xs">
+                    <span class="text-slate-400 text-[11px]"><i class="fa-regular fa-paper-plane"></i> ${lead.platform}</span>
+                    ${statusBadge}
+                </div>
+            `;
+            return div;
+        }
+
+        function filterLeads(type) {
+            ['all', 'pending', 'converted'].forEach(t => {
+                const btn = document.getElementById(`filter-${t}`);
+                if(t === type) {
+                    btn.className = "flex-1 py-1.5 rounded-lg bg-brand-600 text-white font-bold";
+                } else {
+                    btn.className = "flex-1 py-1.5 rounded-lg text-slate-400";
+                }
+            });
+            renderLeads(type);
+        }
+
+        function approveReply(id) {
+            const index = leadsState.findIndex(l => l.id === id);
+            if (index !== -1) {
+                leadsState[index].status = 'converted';
+                saveLeadsToStorage();
+                renderLeads();
+                alert('تم اعتماد الرد بنجاح وتحويل حالة الزبون إلى "تم الشراء"!');
+            }
+        }
+
+        function ignoreReply(id) {
+            leadsState = leadsState.filter(l => l.id !== id);
+            saveLeadsToStorage();
+            renderLeads();
+        }
+
+        function editReplyText(id) {
+            const lead = leadsState.find(l => l.id === id);
+            if(lead) {
+                const updatedText = prompt("عدل الرد المقترح للزبون:", lead.suggestedReply);
+                if (updatedText !== null && updatedText.trim() !== "") {
+                    lead.suggestedReply = updatedText.trim();
+                    saveLeadsToStorage();
+                    renderLeads();
+                }
+            }
+        }
+
+        function openAddLeadModal() {
+            const name = prompt("أدخل اسم الزبون / الصفحة:");
+            if(!name) return;
+            const query = prompt("أدخل استفسار أو طلب الزبون:");
+            if(!query) return;
+
+            const newLead = {
+                id: 'lead-' + Date.now(),
+                name: name,
+                platform: 'telegram',
+                intent: 'جديد (90%)',
+                query: query,
+                suggestedReply: 'أهلاً بك! تم استلام طلبك وجاري معالجته وتزويدك بالتفاصيل.',
+                status: 'pending',
+                time: 'الآن'
+            };
+
+            leadsState.unshift(newLead);
+            saveLeadsToStorage();
+            renderLeads();
+        }
+
+        // AI Integrations
+        async function generateDailyPost() {
+            const ai = getAIClient();
+            if (!ai) return;
+
+            const container = document.getElementById('today-post-text');
+            container.innerText = "جاري توليد منشور تسويقي عراقي مخصص...";
+
+            try {
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: "اكتب منشور تسويقي عراقي جذاب وقصير لتطبيق حاسبة أرباح المتاجر الإلكترونية والتوصيل 'ربحي' مع هاشتاغات مناسِبة.",
+                    config: { systemInstruction: SYSTEM_INSTRUCTION }
+                });
+                container.innerText = response.text.trim();
+            } catch (err) {
+                console.error(err);
+                container.innerText = "حدث خطأ أثناء التوليد. اطلب التأكد من صحة الـ API Key في الإعدادات.";
+            }
+        }
+
+        async function generateAIContent() {
+            const ai = getAIClient();
+            if (!ai) return;
+
+            const type = document.getElementById('content-type').value;
+            const topic = document.getElementById('content-topic').value;
+            const btn = document.getElementById('btn-generate-content');
+            const resultBox = document.getElementById('content-result');
+            const resultText = document.getElementById('generated-text');
+
+            btn.disabled = true;
+            btn.innerText = "جاري صياغة المحتوى...";
+            resultBox.classList.remove('hidden');
+            resultText.innerText = "جاري التواصل مع Gemini...";
+
+            const prompt = `المطلوب: ${type}. \nالتفاصيل أو التركيز المطلوب: ${topic || "تسويق عام ومزايا حاسبة أرباح للتجار العراقيين"}.`;
+
+            try {
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: prompt,
+                    config: { systemInstruction: SYSTEM_INSTRUCTION }
+                });
+                resultText.innerText = response.text.trim();
+            } catch (err) {
+                console.error(err);
+                resultText.innerText = "فشل توليد المحتوى. يرجى مراجعة إعدادات المفتاح.";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i><span>توليد المحتوى بواسطة Gemini</span>`;
+            }
+        }
+
+        async function sendAgentCommand() {
+            const ai = getAIClient();
+            if (!ai) return;
+
+            const cmd = document.getElementById('agent-command-input').value;
+            if (!cmd) return alert('يرجى كتابة الاستفسار أولاً');
+
+            const btn = document.getElementById('btn-send-agent');
+            const outputBox = document.getElementById('agent-plan-output');
+            const outputText = document.getElementById('agent-plan-text');
+
+            btn.disabled = true;
+            btn.innerText = "جاري التحليل واستخلاص الحل...";
+            outputBox.classList.remove('hidden');
+            outputText.innerText = "جاري إعداد التوصيات...";
+
+            const prompt = `أنا تاجر، وأريد نصيحة وحل مباشر لهذه الحالة: "${cmd}"`;
+
+            try {
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: prompt,
+                    config: { systemInstruction: SYSTEM_INSTRUCTION }
+                });
+                outputText.innerText = response.text.trim();
+            } catch (err) {
+                console.error(err);
+                outputText.innerText = "تعذر الاتصال بالذكاء الاصطناعي.";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>إرسال الاستفسار للوكيل</span>`;
+            }
+        }
+
+        // Utilities & Actions
+        function copyPostText() {
+            const text = document.getElementById('today-post-text').innerText;
+            navigator.clipboard.writeText(text);
+            alert('تم نسخ نص المنشور بنجاح!');
+        }
+
+        function copyGeneratedContent() {
+            const text = document.getElementById('generated-text').innerText;
+            navigator.clipboard.writeText(text);
+            alert('تم النسخ إلى الحافظة!');
+        }
+
+        function openPlatform(platform) {
+            if(platform === 'facebook') window.open('https://facebook.com', '_blank');
+            if(platform === 'telegram') window.open('https://t.me', '_blank');
+        }
+
+        function approveAgentPlan() {
+            alert('تم اعتماد التوصيات!');
+            document.getElementById('agent-plan-output').classList.add('hidden');
+        }
+
+        function saveSettings() {
+            const apiKey = document.getElementById('setting-api-key').value.trim();
+            const storeName = document.getElementById('setting-store-name').value.trim();
+
+            if (apiKey) {
+                localStorage.setItem('rabhi_api_key', apiKey);
+            }
+            if (storeName) {
+                localStorage.setItem('rabhi_store_name', storeName);
+            }
+            alert('تم حفظ كافة الإعدادات بنجاح!');
+        }
+
+        function resetDefaultData() {
+            if(confirm("هل أنت تأكد من إعادة ضبط البيانات الافتراضية؟")) {
+                leadsState = [...defaultLeads];
+                saveLeadsToStorage();
+                renderLeads();
+                alert("تمت إعادة الضبط!");
+            }
+        }
+    </script>
+</body>
+</html>
